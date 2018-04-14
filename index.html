@@ -1,24 +1,760 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-	<title></title>
-	<script src="https://cdn.bootcss.com/jquery/1.12.4/jquery.min.js"></script>
-	<script type="text/javascript">
-		// var a = $('#test-link');
-		// a.on('click', function () {
-		// 	alert('Hello!');
-		// });
-		$(function() {
-			var a = $('#test-link');
-			a.click( function() {
-				alert('Hello!');
-			});
-		});
-		
+    <meta charset="utf-8">
+    <title>现场作业数据实时监控系统</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="css/bootstrap.min.css" rel="stylesheet" media="screen">
+    <link rel="stylesheet" href="index4.css"/>
 
-	</script>
 </head>
-<body>
-	<a id="test-link" href="#0">点我试试</a>
+<body class="bckcolor">
+
+<div class="container-fluid" style="margin-top: 40px">
+    <h1 style="color: #696969; text-align: center;margin-top: 6px">洗车机刷组运行状态实时监测系统</h1>
+</div>
+
+<div class="container-fluid ">
+    <style>
+        .table > tbody > tr > td {
+            min-width: 98px;
+            padding: 8px 0;
+        }
+
+        /*.table>tbody>tr>th {*/
+        /*width: 85px;*/
+        /*padding: 8px 0;*/
+        /*}*/
+    </style>
+    <div class="row chart-container" style="margin-bottom: -20px">
+        <div class="col-md-4">
+            <table class="table trow" style="width: 450px;line-height: 35px">
+                <caption style="font-size: 18px; font-weight: bold;margin-bottom: 20px;margin-top: -10px">设备状态信息
+                </caption>
+                <tr>
+                    <th>电流(A)</th>
+                    <td>A相:<span id="currentA"></span></td>
+                    <td>B相:<span id="currentB"></span></td>
+                    <td>C相:<span id="currentC"></span></td>
+                    <td></td>
+                    <!--<td></td>-->
+                </tr>
+                <tr>
+                    <th>温度(℃)</th>
+                    <td>电机:<span id="tmpA"></span></td>
+                    <td>减速机:<span id="tmpB"></span></td>
+                    <td>上轴:<span id="tmpC"></span></td>
+                    <td>下轴:<span id="tmpD"></span></td>
+                </tr>
+                <tr>
+                    <th>转速(RPM)</th>
+                    <td>最大值:<span id="rpm_max1"></span></td>
+                    <td>均值:<span id="rpm_avg1"></span></td>
+                    <td>当前值:<span id="rpm1"></span></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <th>振动(Hz)</th>
+                    <td>频率:<span id="vibr"></span></td>
+                    <td>强度:<span id="vibr_power"></span></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <th>摆幅(mm)</th>
+                    <td>最大值:<span id="amp_max"></span></td>
+                    <td>当前值:<span id="amp"></span></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="col-md-4 bian">
+            <div id="voltage_current_chart" class="ec-container"></div>
+        </div>
+        <div class="col-md-4">
+            <div id="temp_chart" class="ec-container"></div>
+        </div>
+    </div>
+
+    <hr style="border: 0.1px solid #d3d3d3; height: 0.1px;background-color: #d3d3d3">
+
+    <div class="row chart-container" style="margin-top: -20px">
+        <div class="col-md-4">
+            <div id="rpm_chart" style="width: 480px; height:400px; z-index: -1"></div>
+            <div style="z-index: 1; margin-top: -70px;">
+                <center class="myspan">
+                    <span><b>最大值：</b><span class="" id="rpm_max2"></span></span>
+                    <span><b>平均值：</b><span class="" id="rpm_avg2"></span></span>
+                    <span><b>实时值：</b><span class="" id="rpm2"></span></span>
+                </center>
+                <!--<table class="table" style="font-size: 14px">-->
+                <!--<tr>-->
+                <!--<th style="border: 0px">最大值：</th>-->
+                <!--<td style="border: 0px"><span class="" id="rpm_max2">asd</span></td>-->
+                <!--<th style="border: 0px">均值：</th>-->
+                <!--<td style="border: 0px"><span class="" id="rpm_avg2">asd</span></td>-->
+                <!--<th style="border: 0px">实时：</th>-->
+                <!--<td style="border: 0px"><span class="" id="rpm2">asd</span></td>-->
+                <!--</tr>-->
+                <!--</table>-->
+            </div>
+        </div>
+        <div class="col-md-4 bian">
+            <div id="amp_chart" style="width: 480px; height:320px;margin-top:45px"></div>
+        </div>
+        <div class="col-md-4">
+            <div id="vibr_chart" style="width: 480px; height:320px;margin-top: 45px"></div>
+        </div>
+    </div>
+
+</div>
+
+
+<script type="text/javascript" src="./js/jquery-3.2.1.min.js"></script>
+<script type="text/javascript" src="./js/bootstrap.min.js"></script>
+<script type="text/javascript" src="js/utf.js"></script>
+<script type="text/javascript" src="echarts.min.js"></script>
+<script type="text/javascript" src="mqtt.min.js"></script>
+<script type="text/javascript" src="./js/zhuti.js"></script>
+<script>
+    function format(timestamp) {
+        var sampledate = new Date(timestamp);
+        var datetime = (sampledate.getHours() < 10 ? '0' + sampledate.getHours() : sampledate.getHours()) + ":" +
+            (sampledate.getMinutes() < 10 ? '0' + sampledate.getMinutes() : sampledate.getMinutes()) + ":" +
+            (sampledate.getSeconds() < 10 ? '0' + sampledate.getSeconds() : sampledate.getSeconds()) + '.' +
+            (sampledate.getMilliseconds());
+        return datetime;
+    }
+
+    var server_ip = "47.93.16.4"
+    var mqtt_url = "ws://" + server_ip + ":8083/mqtt";
+    var client = mqtt.connect(mqtt_url);
+    client.subscribe("electricity");
+    // client.subscribe("temperature");
+    // client.subscribe("rpm");
+    // client.subscribe("amp");
+    // client.subscribe("vibr");
+    // client.subscribe("rpm_max");
+    // client.subscribe("rpm_avg");
+    // client.subscribe("amp_max");
+
+    client.on("message", function (topic, message) {
+        console.log(topic, message.toString());
+        if (topic === 'rpm_max') {
+            var data = JSON.parse(message.toString());
+            var rpm_max = data.rpm_max;
+
+            document.getElementById('rpm_max1').innerHTML = null;
+            document.getElementById('rpm_max1').innerHTML = parseFloat(rpm_max).toFixed(1);
+            document.getElementById('rpm_max2').innerHTML = null;
+            document.getElementById('rpm_max2').innerHTML = parseFloat(rpm_max).toFixed(1);
+        }
+        if (topic === 'rpm_avg') {
+            var data = JSON.parse(message.toString());
+            var rpm_avg = data.rpm_avg;
+
+            document.getElementById('rpm_avg1').innerHTML = null;
+            document.getElementById('rpm_avg1').innerHTML = parseFloat(rpm_avg).toFixed(1);
+            document.getElementById('rpm_avg2').innerHTML = null;
+            document.getElementById('rpm_avg2').innerHTML = parseFloat(rpm_avg).toFixed(1);
+        }
+        if (topic === 'amp_max') {
+            var data = JSON.parse(message.toString());
+            var amp_max = data.amp_max;
+
+            document.getElementById('amp_max').innerHTML = null;
+            document.getElementById('amp_max').innerHTML = parseFloat(amp_max).toFixed(1);
+            amp_option.series[0].data[0] = parseFloat(amp_max).toFixed(1);
+
+            amp_chart.setOption(amp_option);
+        }
+
+        if (topic === 'electricity') {
+            var data = JSON.parse(message.toString());
+            var currentA = data.curA;
+            var currentB = data.curB;
+            var currentC = data.curC;
+            var datetime = format(data.timestamp);
+
+            currentA = parseFloat(currentA).toFixed(1);
+            currentB = parseFloat(currentB).toFixed(1);
+            currentC = parseFloat(currentC).toFixed(1);
+
+            document.getElementById('currentA').innerHTML = null;
+            document.getElementById('currentA').innerHTML = currentA;
+            document.getElementById('currentB').innerHTML = null;
+            document.getElementById('currentB').innerHTML = currentB;
+            document.getElementById('currentC').innerHTML = null;
+            document.getElementById('currentC').innerHTML = currentC;
+
+            var currentA_View = voltage_current_option.series[0].data;
+            var currentB_View = voltage_current_option.series[1].data;
+            var currentC_View = voltage_current_option.series[2].data;
+            var voltage_current_datetime_View = voltage_current_option.xAxis.data;
+
+            if (elec_length > 200) {
+                currentA_View.shift();
+                currentB_View.shift();
+                currentC_View.shift();
+                voltage_current_datetime_View.shift();
+                currentA_View.push(currentA);
+                currentB_View.push(currentB);
+                currentC_View.push(currentC);
+                voltage_current_datetime_View.push(datetime);
+            } else {
+                currentA_View.push(currentA);
+                currentB_View.push(currentB);
+                currentC_View.push(currentC);
+                voltage_current_datetime_View.push(datetime);
+            }
+            elec_length++;
+            voltage_current_chart.setOption(voltage_current_option);
+        }
+
+        if (topic === 'temperature') {
+            var data = JSON.parse(message.toString());
+            var heattemp1 = data.tmp0;
+            var heattemp2 = data.tmp1;
+            var heattemp3 = data.tmp2;
+            var heattemp4 = data.tmp3;
+            var datetime = format(data.timestamp);
+
+            heattemp1 = parseFloat(heattemp1).toFixed(1);
+            heattemp2 = parseFloat(heattemp2).toFixed(1);
+            heattemp3 = parseFloat(heattemp3).toFixed(1);
+            heattemp4 = parseFloat(heattemp4).toFixed(1);
+
+            document.getElementById('tmpA').innerHTML = null;
+            document.getElementById('tmpA').innerHTML = heattemp1;
+            document.getElementById('tmpB').innerHTML = null;
+            document.getElementById('tmpB').innerHTML = heattemp2;
+            document.getElementById('tmpC').innerHTML = null;
+            document.getElementById('tmpC').innerHTML = heattemp3;
+            document.getElementById('tmpD').innerHTML = null;
+            document.getElementById('tmpD').innerHTML = heattemp4;
+
+            var tmpA_View = temp_option.series[0].data;
+            var tmpB_View = temp_option.series[1].data;
+            var tmpC_View = temp_option.series[2].data;
+            var tmpD_View = temp_option.series[3].data;
+            var tmp_datetime_View = temp_option.xAxis[0].data;
+
+            if (tmp_length > 60) {
+                tmpA_View.shift();
+                tmpB_View.shift();
+                tmpC_View.shift();
+                tmpD_View.shift();
+                tmp_datetime_View.shift();
+                tmpA_View.push(heattemp1);
+                tmpB_View.push(heattemp2);
+                tmpC_View.push(heattemp3);
+                tmpD_View.push(heattemp4);
+                tmp_datetime_View.push(datetime);
+            } else {
+                tmpA_View.push(heattemp1);
+                tmpB_View.push(heattemp2);
+                tmpC_View.push(heattemp3);
+                tmpD_View.push(heattemp4);
+                tmp_datetime_View.push(datetime);
+            }
+
+            tmp_length++;
+
+            temp_chart.setOption(temp_option);
+        }
+
+        if (topic === 'rpm') {
+            var data = JSON.parse(message.toString());
+            var rpm_data = data.speed;
+
+            document.getElementById('rpm1').innerHTML = null;
+            document.getElementById('rpm1').innerHTML = parseFloat(rpm_data).toFixed(1);
+            document.getElementById('rpm2').innerHTML = null;
+            document.getElementById('rpm2').innerHTML = parseFloat(rpm_data).toFixed(1);
+            rpm_option.series[0].data[0].value = parseFloat(rpm_data).toFixed(1);
+
+            rpm_chart.setOption(rpm_option);
+        }
+
+        if (topic === 'amp') {
+            var data = JSON.parse(message.toString());
+            var amp_data = data.amp;
+            document.getElementById('amp').innerHTML = null;
+            document.getElementById('amp').innerHTML = parseFloat(amp_data).toFixed(1);
+            amp_option.series[0].data[1] = parseFloat(amp_data).toFixed(1);
+
+            amp_chart.setOption(amp_option);
+        }
+        if (topic === 'vibr') {
+            var data = JSON.parse(message.toString());
+            var vibr = data.vibr;
+            var power = data.power;
+            var datetime = format(data.timestamp);
+
+            document.getElementById('vibr').innerHTML = null;
+            document.getElementById('vibr').innerHTML = parseFloat(vibr).toFixed(1);
+            document.getElementById('vibr_power').innerHTML = null;
+            document.getElementById('vibr_power').innerHTML = parseFloat(power).toFixed(1);
+
+            var vibr_View = vibr_option.series[0].data;
+            var vibr_power_View = vibr_option.series[1].data;
+            var vibr_datetime_View = vibr_option.xAxis.data;
+            if (vibr_length > 200) {
+                vibr_View.shift();
+                vibr_power_View.shift();
+                vibr_datetime_View.shift();
+                vibr_View.push(vibr);
+                vibr_power_View.push(power);
+                vibr_datetime_View.push(datetime);
+            } else {
+                vibr_View.push(vibr);
+                vibr_power_View.push(power);
+                vibr_datetime_View.push(datetime);
+            }
+            vibr_length++;
+            vibr_chart.setOption(vibr_option);
+        }
+    });
+
+    var elec_length = 0;
+    var tmp_length = 0;
+    var vibr_length = 0;
+    var voltage_current_chart = echarts.init(document.getElementById("voltage_current_chart"), 'shine');
+    var temp_chart = echarts.init(document.getElementById("temp_chart"), 'shine');
+    var rpm_chart = echarts.init(document.getElementById("rpm_chart"), 'shine');
+    var amp_chart = echarts.init(document.getElementById("amp_chart"), 'shine');
+    var vibr_chart = echarts.init(document.getElementById("vibr_chart"), 'shine');
+
+    var voltage_current_option = null;
+    var temp_option = null;
+    var rpm_option = null;
+    var amp_option = null;
+    var vibr_option = null;
+
+    voltage_current_option = {
+        title: {
+            text: '电流'
+        },
+        tooltip: {
+            trigger: 'axis',
+            axisPointer: {
+                type: 'line'
+            }
+        },
+        legend: {
+            top: 10,
+            data: [
+                {
+                    name: 'A相电流',
+                },
+                {
+                    name: 'B相电流',
+                },
+                {
+                    name: 'C相电流',
+                }
+            ],
+        },
+        xAxis: {
+            type: 'category',
+            name: '时间',
+            nameLocation: 'center',
+            nameTextStyle: {
+                padding: [80, 0, 0, 0],
+            },
+            boundaryGap: true,
+            data: []
+        },
+        yAxis: {
+            type: 'value',
+            nameLocation: 'center',
+            name: '电流(A)',
+            nameRotate: 90,
+            nameGap: 1,
+            nameTextStyle: {
+                padding: [-80, 0, 0, 0],
+            },
+            min: 0,
+            boundaryGap: ['20%', '20%']
+        },
+        series: [
+            {
+                name: 'A相电流',
+                type: 'line',
+                data: [],
+                markPoint: {
+                    data: [
+                        {type: 'max', name: '最大值'},
+                        {type: 'min', name: '最小值'}
+                    ]
+                }
+            },
+            {
+                name: 'B相电流',
+                type: 'line',
+                data: [],
+                markPoint: {
+                    data: [
+                        {type: 'max', name: '最大值'},
+                        {type: 'min', name: '最小值'}
+                    ]
+                },
+                // itemStyle: {
+                //     normal: {
+                //         lineStyle: {
+                //             color: 'green'
+                //         }
+                //     }
+                // }
+            },
+            {
+                name: 'C相电流',
+                type: 'line',
+                data: [],
+                markPoint: {
+                    data: [
+                        {type: 'max', name: '最大值'},
+                        {type: 'min', name: '最小值'}
+                    ]
+                },
+                // itemStyle: {
+                //     normal: {
+                //         lineStyle: {
+                //             color: 'blue'
+                //         }
+                //     }
+                // }
+            }
+        ]
+    };
+
+    temp_option = {
+        title: {
+            text: '温度'
+        },
+        tooltip: {
+            trigger: 'axis',
+            axisPointer: {
+                type: 'line'
+            },
+        },
+        legend: {
+            top: 10,
+            data: [
+                {
+                    name: '电机',
+                    textStyle: {
+                        color: 'red',
+                        fontWeight: 'bolder'
+                    }
+                },
+                {
+                    name: '减速机',
+                    textStyle: {
+                        color: 'green',
+                        fontWeight: 'bolder'
+                    }
+                },
+                {
+                    name: '上轴',
+                    textStyle: {
+                        color: 'blue',
+                        fontWeight: 'bolder'
+                    }
+                },
+                {
+                    name: '下轴',
+                    textStyle: {
+                        color: 'brown',
+                        fontWeight: 'bolder'
+                    }
+                }
+            ]
+        },
+        xAxis: [
+            {
+                type: 'category',
+                name: '时间',
+                nameLocation: 'center',
+                nameTextStyle: {
+                    padding: [80, 0, 0, 0],
+                },
+                boundaryGap: true,
+                data: []
+            }
+        ],
+        yAxis: [
+            {
+                type: 'value',
+                scale: false,
+                name: '温度(℃)',
+                nameLocation: 'center',
+                nameRotate: 90,
+                nameTextStyle: {
+                    padding: [-80, 0, 0, 0],
+                },
+                min: -10,
+                // max: 20,
+                boundaryGap: ['20%', '20%']
+            }
+        ],
+        series: [
+            {
+                name: '电机',
+                type: 'line',
+                data: [],
+                markPoint: {
+                    data: [
+                        {type: 'max', name: '最大值'},
+                        {type: 'min', name: '最小值'}
+                    ]
+                },
+                itemStyle: {
+                    normal: {
+                        lineStyle: {
+                            color: 'red'
+                        }
+                    }
+                }
+            },
+            {
+                name: '减速机',
+                type: 'line',
+                data: [],
+                markPoint: {
+                    data: [
+                        {type: 'max', name: '最大值'},
+                        {type: 'min', name: '最小值'}
+                    ]
+                },
+                itemStyle: {
+                    normal: {
+                        lineStyle: {
+                            color: 'green'
+                        }
+                    }
+                }
+            },
+            {
+                name: '上轴',
+                type: 'line',
+                data: [],
+                markPoint: {
+                    data: [
+                        {type: 'max', name: '最大值'},
+                        {type: 'min', name: '最小值'}
+                    ]
+                },
+                itemStyle: {
+                    normal: {
+                        lineStyle: {
+                            color: 'blue'
+                        }
+                    }
+                }
+            },
+            {
+                name: '下轴',
+                type: 'line',
+                data: [],
+                markPoint: {
+                    data: [
+                        {type: 'max', name: '最大值'},
+                        {type: 'min', name: '最小值'}
+                    ]
+                },
+                itemStyle: {
+                    normal: {
+                        lineStyle: {
+                            color: 'brown'
+                        }
+                    }
+                }
+            }
+        ]
+    };
+    rpm_option = {
+        title: {
+            text: '转速',
+            padding: [46, 5, 5, 5]
+        },
+        tooltip: {
+            formatter: "{a} <br/>{b} : {c}%"
+        },
+
+        series: [
+            {
+                name: '毛刷',
+                type: 'gauge',
+                min: 0,
+                max: 200,
+                detail: {
+                    // show:false,
+                    formatter: 'RPM'
+                },
+                data: [{value: 0, name: '转速(r/min)'}],
+                title: {
+                    show: false,
+                    textStyle: {
+                        fontWeight: 'bolder',
+                        fontSize: 15,
+                        fontStyle: 'italic',
+                        shadowBlur: 10
+                    }
+                }
+                // detail: {
+                //     backgroundColor: 'green',
+                //     borderWidth: 1,
+                //     borderColor: '#fff',
+                //     shadowColor: '#fff', //默认透明
+                //     shadowBlur: 5,
+                //     offsetCenter: [0, '50%'],       // x, y，单位px
+                //     textStyle: {       // 其余属性默认使用全局文本样式，详见TEXTSTYLE
+                //         fontWeight: 'bolder',
+                //         color: '#fff'
+                //     }
+                // }
+            }
+        ]
+    };
+    amp_option = {
+        title: {
+            text: '摆幅'
+        },
+        tooltip: {
+            trigger: 'axis',
+            axisPointer: {
+                type: 'shadow'
+            }
+        },
+        xAxis: {
+            name: '摆动幅度(mm)',
+            nameLocation: 'center',
+            max: 20,
+            nameTextStyle: {
+                padding: [80, 0, 0, -30],
+                align: 'left'
+            },
+
+            type: 'value',
+            boundaryGap: [0, 0.01]
+        },
+        yAxis: {
+            type: 'category',
+            data: ['最大值', '当前值'],
+            axisLabel: {
+                rotate: 90
+            },
+            boundaryGap: ['20%', '20%']
+        },
+        series: [
+            {
+                type: 'bar',
+                label: {
+                	normal :{
+                		show: true,
+                		formatter: '{c}'
+                	}
+                },
+                data: []
+            }
+        ]
+    };
+
+    vibr_option = {
+        title: {
+            text: '振动'
+        },
+        tooltip: {
+            trigger: 'axis',
+            axisPointer: {
+                type: 'line'
+            }
+        },
+        legend: {
+            top: 10,
+            data: ['频率','强度']
+        },
+        xAxis: {
+            type: 'category',
+            name: '时间',
+            nameLocation: 'center',
+            nameTextStyle: {
+                padding: [80, 0, 0, 0],
+            },
+            boundaryGap: true,
+            data: []
+        },
+        yAxis: [{
+            type: 'value',
+            nameLocation: 'center',
+            name: '频率(Hz)',
+            nameRotate: 90,
+            nameTextStyle: {
+                padding: [-80, 0, 0, 0],
+            },
+            min: 0,
+            boundaryGap: ['20%', '20%']
+        },
+            {
+                type: 'value',
+                nameLocation: 'center',
+                name: '强度(g)',
+                nameRotate: 90,
+                nameTextStyle: {
+                    padding: [80, 0, 0, 0],
+                },
+                min: 0,
+                boundaryGap: ['20%', '20%']
+            }],
+        series: [
+            {
+                name: '频率',
+                type: 'line',
+                data: [],
+                markPoint: {
+                    data: [
+                        {type: 'max', name: '最大值'},
+                        {type: 'min', name: '最小值'}
+                    ]
+                }
+            },
+            {
+                name: '强度',
+                type: 'line',
+                yAxisIndex:1,
+                data: [],
+                markPoint: {
+                    data: [
+                        {type: 'max', name: '最大值'},
+                        {type: 'min', name: '最小值'}
+                    ]
+                }
+            }
+        ]
+    };
+
+    voltage_current_chart.setOption(voltage_current_option);
+    temp_chart.setOption(temp_option);
+    rpm_chart.setOption(rpm_option);
+    amp_chart.setOption(amp_option);
+    vibr_chart.setOption(vibr_option);
+
+    window.onresize = function () {
+        voltage_current_chart.resize();
+        temp_chart.resize();
+        rpm_chart.resize();
+        amp_chart.resize()
+    }
+</script>
 </body>
 </html>

@@ -1,0 +1,50 @@
+/*.navbar-default {*/
+    /*border: none;*/
+    /*background-color: rgb(51, 51, 51);*/
+    /*z-index: 100;*/
+    /*transition: background-color 0.5s linear;*/
+    /*height: 50px;*/
+/*}*/
+.chart-container {
+    margin-top: 37px;
+}
+
+.ec-container{
+    width: 480px;
+    height:320px;
+}
+
+
+.bckcolor{
+    /*background-color: rgb(51, 51, 51);*/
+    background-color: whitesmoke;
+}
+
+.bian{
+    margin-bottom: -50px;
+    border-style: solid;
+    border-color: #d3d3d3;
+    border-top-width: 0px;
+    border-right-width: 1px;
+    border-bottom-width: 0px;
+    border-left-width: 1px;
+}
+
+.xiahuaxian{
+    width:100px;
+    border:0;
+    border-bottom:1px solid #000;
+    text-align:center;
+}
+
+.trow td {
+    /*width: 180px;*/
+    /*padding: 8px 0;*/
+}
+.trow th{
+    /*width: 85px;*/
+}
+.myspan>span{
+    display: inline-block;
+    width:32%;
+}
