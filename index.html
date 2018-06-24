@@ -139,13 +139,13 @@
     var mqtt_url = "ws://" + server_ip + ":8083/mqtt";
     var client = mqtt.connect(mqtt_url);
     client.subscribe("electricity");
-    // client.subscribe("temperature");
-    // client.subscribe("rpm");
-    // client.subscribe("amp");
-    // client.subscribe("vibr");
-    // client.subscribe("rpm_max");
-    // client.subscribe("rpm_avg");
-    // client.subscribe("amp_max");
+    client.subscribe("temperature");
+    client.subscribe("rpm");
+    client.subscribe("amp");
+    client.subscribe("vibr");
+    client.subscribe("rpm_max");
+    client.subscribe("rpm_avg");
+    client.subscribe("amp_max");
 
     client.on("message", function (topic, message) {
         console.log(topic, message.toString());
